@@ -9,14 +9,35 @@ sf::read_sf("data/valladares.json", driver = "geojson")
 # Os dados precisam ser lidos como JSON.
 soil_profile <- 
   jsonlite::read_json("data/valladares.json") %>% 
-  # unname() %>%
   unlist(recursive = FALSE) %>% 
   lapply(function (x) unlist(x, recursive = FALSE)) %>%
   lapply(function (x) unlist(x, recursive = FALSE)) %>% 
-  lapply(function (x) unlist(x, recursive = FALSE) %>% data.frame)
+  lapply(function (x) unlist(x, recursive = FALSE)) %>% 
+  do.call(rbind, .)
 soil_profile %>% str(2)
-  
-  
+
+# Teste de exportação dos mesmos dados para GeoJSON ###########################################################
+soil_profile <- 
+  read.table("data/valladares.csv", header = T, dec = ",") %>% 
+  sf::st_as_sf(coords = c("coordinates1", "coordinates2"))
+sf::write_sf(
+  soil_profile, "data/geo-valladares.json", driver = "geojson", 
+  layer_options = c("ID_FIELD='ID_PONTO'"))
+jsonlite::read_json("data/geo-valladares.json") %>% 
+  jsonlite::write_json("data/geo-valladares.json", pretty = TRUE)
+
+# Usano o pacote AQP ##########################################################################################
+library(aqp)
+soil_profile <- read.table("data/valladares.csv", header = T, dec = ",")
+depths(soil_profile) <- ID_PONTO ~ coordinates1 + coordinates2
+site(soil_profile) <- cbind(site(soil_profile), class = c("organossolo", "latossolo"))
+soil_profile <- as(soil_profile, 'list')
+soil_profile <- soil_profile[1:6]
+jsonlite::write_json(soil_profile, "data/aqp-valladares.json", pretty = TRUE)
+
+
+
+
 
 # soil_profile <- 
 #   data.frame(
